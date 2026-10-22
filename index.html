@@ -20,21 +20,19 @@
   </style>
 </head>
 <body>
-  <h1>Rise of Kingdoms - Simulador de Batallas (v0.2)</h1>
+  <h1>Rise of Kingdoms - Simulador de Batallas (v0.3)</h1>
   <div class="note">
-    <strong>Versión inicial aproximada.</strong> Basada en mecánicas comunitarias:<br>
-    • Turnos de 1 segundo.<br>
-    • Counter: Infantería > Caballería > Arqueros > Infantería (bonus ~20% dmg / -15% dmg recibido, aproximado).<br>
-    • Stats: ATK / DEF / HP (porcentajes de bonus).<br>
-    • Daño simplificado con factor base 200 y escala de tropas.<br>
-    • Sin skills de comandantes ni rage por ahora (próximas versiones).<br>
-    Resultados orientativos, no exactos al juego.<br>
-    <em>Lógica separada en <code>js/simulator.js</code></em>
+    <strong>Versión con comandantes KvK1.</strong> Incluye lista de legendarios y epics disponibles en Season 1.<br>
+    • Skills activas simplificadas (rage ~90/turno, activan a 1000).<br>
+    • Damage Factor aproximado de los actives principales.<br>
+    Resultados orientativos.
   </div>
 
   <div class="armies">
     <div class="army">
       <h2>Ejército A</h2>
+      <label>Comandante Principal</label>
+      <select id="commanderA"></select>
       <label>Tipo de tropa</label>
       <select id="typeA">
         <option value="infantry">Infantería</option>
@@ -53,6 +51,8 @@
 
     <div class="army">
       <h2>Ejército B</h2>
+      <label>Comandante Principal</label>
+      <select id="commanderB"></select>
       <label>Tipo de tropa</label>
       <select id="typeB">
         <option value="infantry">Infantería</option>
@@ -75,13 +75,29 @@
 
   <script type="module">
     import { simulateBattle, readArmyFromForm } from './js/simulator.js';
+    import { KVK1_COMMANDERS } from './js/commanders.js';
+
+    function fillCommanderSelect(selectId) {
+      const select = document.getElementById(selectId);
+      KVK1_COMMANDERS.forEach(cmd => {
+        const opt = document.createElement('option');
+        opt.value = cmd.id;
+        opt.textContent = `${cmd.name} (${cmd.rarity})`;
+        select.appendChild(opt);
+      });
+    }
+
+    fillCommanderSelect('commanderA');
+    fillCommanderSelect('commanderB');
+
+    // Defaults
+    document.getElementById('commanderA').value = 'suntzu';
+    document.getElementById('commanderB').value = 'ysg';
 
     document.getElementById('simulateBtn').addEventListener('click', () => {
       const armyA = readArmyFromForm('A');
       const armyB = readArmyFromForm('B');
-
       const result = simulateBattle(armyA, armyB);
-
       document.getElementById('result').innerHTML = result.log + '\n' + result.winnerHtml;
     });
   </script>

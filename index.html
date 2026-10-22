@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <h1>Rise of Kingdoms - Simulador de Batallas (v0.1)</h1>
+  <h1>Rise of Kingdoms - Simulador de Batallas (v0.2)</h1>
   <div class="note">
     <strong>Versión inicial aproximada.</strong> Basada en mecánicas comunitarias:<br>
     • Turnos de 1 segundo.<br>
@@ -28,7 +28,8 @@
     • Stats: ATK / DEF / HP (porcentajes de bonus).<br>
     • Daño simplificado con factor base 200 y escala de tropas.<br>
     • Sin skills de comandantes ni rage por ahora (próximas versiones).<br>
-    Resultados orientativos, no exactos al juego.
+    Resultados orientativos, no exactos al juego.<br>
+    <em>Lógica separada en <code>js/simulator.js</code></em>
   </div>
 
   <div class="armies">
@@ -69,82 +70,20 @@
     </div>
   </div>
 
-  <button onclick="simulate()">Simular Batalla</button>
+  <button id="simulateBtn">Simular Batalla</button>
   <div id="result"></div>
 
-  <script>
-    function getCounterMultiplier(attacker, defender) {
-      const counters = {
-        infantry: 'cavalry',
-        cavalry: 'archer',
-        archer: 'infantry'
-      };
-      if (counters[attacker] === defender) return 1.20; // ventaja
-      if (counters[defender] === attacker) return 0.85; // desventaja
-      return 1.0;
-    }
+  <script type="module">
+    import { simulateBattle, readArmyFromForm } from './js/simulator.js';
 
-    function calculateDamage(attackerTroops, atkPct, defPctDefender, hpPctDefender, counterMult) {
-      // Aproximación simplificada basada en fórmulas comunitarias
-      // DF base ~200 para ataque normal, escala con tropas y ratio ATK/DEF
-      const baseDF = 200;
-      const scale = Math.sqrt(Math.max(attackerTroops, 1000) / 10000); // escala suave
-      const effectiveAtk = 1 + atkPct / 100;
-      const effectiveDef = 1 + defPctDefender / 100;
-      const effectiveHp = 1 + hpPctDefender / 100;
-      
-      let damageFactor = baseDF * scale * (effectiveAtk / effectiveDef) * counterMult;
-      // Convertir a pérdida de tropas aproximada
-      const troopLoss = (damageFactor * 25) / effectiveHp; // factor de calibración
-      return Math.max(0, Math.round(troopLoss));
-    }
+    document.getElementById('simulateBtn').addEventListener('click', () => {
+      const armyA = readArmyFromForm('A');
+      const armyB = readArmyFromForm('B');
 
-    function simulate() {
-      let troopsA = parseInt(document.getElementById('troopsA').value) || 0;
-      let troopsB = parseInt(document.getElementById('troopsB').value) || 0;
-      const typeA = document.getElementById('typeA').value;
-      const typeB = document.getElementById('typeB').value;
-      const atkA = parseFloat(document.getElementById('atkA').value) || 0;
-      const defA = parseFloat(document.getElementById('defA').value) || 0;
-      const hpA = parseFloat(document.getElementById('hpA').value) || 0;
-      const atkB = parseFloat(document.getElementById('atkB').value) || 0;
-      const defB = parseFloat(document.getElementById('defB').value) || 0;
-      const hpB = parseFloat(document.getElementById('hpB').value) || 0;
+      const result = simulateBattle(armyA, armyB);
 
-      const maxTurns = 90;
-      let log = `Iniciando batalla\n`;
-      log += `A: ${troopsA} ${typeA} | ATK ${atkA}% DEF ${defA}% HP ${hpA}%\n`;
-      log += `B: ${troopsB} ${typeB} | ATK ${atkB}% DEF ${defB}% HP ${hpB}%\n`;
-      log += `Counter A→B: x${getCounterMultiplier(typeA, typeB).toFixed(2)} | B→A: x${getCounterMultiplier(typeB, typeA).toFixed(2)}\n\n`;
-
-      let turn = 0;
-      while (troopsA > 0 && troopsB > 0 && turn < maxTurns) {
-        turn++;
-        const multA = getCounterMultiplier(typeA, typeB);
-        const multB = getCounterMultiplier(typeB, typeA);
-
-        const dmgAtoB = calculateDamage(troopsA, atkA, defB, hpB, multA);
-        const dmgBtoA = calculateDamage(troopsB, atkB, defA, hpA, multB);
-
-        troopsB = Math.max(0, troopsB - dmgAtoB);
-        troopsA = Math.max(0, troopsA - dmgBtoA);
-
-        log += `Turno ${turn}s: A → B -${dmgAtoB} | B → A -${dmgBtoA} | Restantes A:${troopsA} B:${troopsB}\n`;
-      }
-
-      log += `\n`;
-      if (troopsA <= 0 && troopsB <= 0) {
-        log += `<span class="winner">Empate después de ${turn} turnos</span>`;
-      } else if (troopsA <= 0) {
-        log += `<span class="winner">Gana Ejército B después de ${turn} turnos. Tropas restantes: ${troopsB}</span>`;
-      } else if (troopsB <= 0) {
-        log += `<span class="winner">Gana Ejército A después de ${turn} turnos. Tropas restantes: ${troopsA}</span>`;
-      } else {
-        log += `Batalla interrumpida a los ${turn}s. Restantes A:${troopsA} B:${troopsB}`;
-      }
-
-      document.getElementById('result').innerHTML = log;
-    }
+      document.getElementById('result').innerHTML = result.log + '\n' + result.winnerHtml;
+    });
   </script>
 </body>
 </html>
